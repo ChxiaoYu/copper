@@ -1,0 +1,44 @@
+使用cropper来上传图片到服务器
+由于cropper可以得到两种裁剪后图片的数据（即blob和dataURL），所以对应的上传到后台也会有两种方法，在这里我只写一种使用ajax上传base64 dataURL的，另一种方法如果有兴趣，可以自己尝试。
+
+页面中，将上面的sendPhoto方法改为：
+var sendPhoto = function () {
+    // 得到PNG格式的dataURL
+    var photo = $('#photo').cropper('getCroppedCanvas', {
+        width: 300,
+        height: 300
+    }).toDataURL('image/png');
+
+    $.ajax({
+        url: '上传地址', // 要上传的地址
+        type: 'post',
+        data: {
+            'imgData': photo
+        },
+        dataType: 'json',
+        success: function (data) {
+            if (data.status == 0) {
+                // 将上传的头像的地址填入，为保证不载入缓存加个随机数
+                $('.user-photo').attr('src', '头像地址?t=' + Math.random());
+                $('#changeModal').modal('hide');
+            } else {
+                alert(data.info);
+            }
+        }
+    });
+}
+
+
+后台中，Java的主要代码如下：（使用了jdk8的Base64,，如果是低版本请自行替换）
+
+    /**
+     * 将Base64位编码的图片进行解码，并保存到指定目录
+     */
+    public static void decodeBase64DataURLToImage(String dataURL, String path, String imgName) throws IOException {
+        // 将dataURL开头的非base64字符删除
+        String base64 = dataURL.substring(dataURL.indexOf(",") + 1);
+        FileOutputStream write = new FileOutputStream(new File(path + imgName));
+        byte[] decoderBytes = Base64.getDecoder().decode(base64);
+        write.write(decoderBytes);
+        write.close();
+    }
